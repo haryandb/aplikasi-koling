@@ -1,40 +1,40 @@
 <?php
 
+use App\Livewire\Settings\Password;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Livewire\Livewire;
 
 test('password can be updated', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'password' => Hash::make('password'),
+    ]);
 
-    $response = $this
-        ->actingAs($user)
-        ->from('/settings/password')
-        ->put('/settings/password', [
-            'current_password' => 'password',
-            'password' => 'new-password',
-            'password_confirmation' => 'new-password',
-        ]);
+    $this->actingAs($user);
 
-    $response
-        ->assertSessionHasNoErrors()
-        ->assertRedirect('/settings/password');
+    $response = Livewire::test(Password::class)
+        ->set('current_password', 'password')
+        ->set('password', 'new-password')
+        ->set('password_confirmation', 'new-password')
+        ->call('updatePassword');
+
+    $response->assertHasNoErrors();
 
     expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();
 });
 
 test('correct password must be provided to update password', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'password' => Hash::make('password'),
+    ]);
 
-    $response = $this
-        ->actingAs($user)
-        ->from('/settings/password')
-        ->put('/settings/password', [
-            'current_password' => 'wrong-password',
-            'password' => 'new-password',
-            'password_confirmation' => 'new-password',
-        ]);
+    $this->actingAs($user);
 
-    $response
-        ->assertSessionHasErrors('current_password')
-        ->assertRedirect('/settings/password');
+    $response = Livewire::test(Password::class)
+        ->set('current_password', 'wrong-password')
+        ->set('password', 'new-password')
+        ->set('password_confirmation', 'new-password')
+        ->call('updatePassword');
+
+    $response->assertHasErrors(['current_password']);
 });
